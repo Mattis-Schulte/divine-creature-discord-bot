@@ -46,8 +46,7 @@ class ResponseHandler:
                 else:
                     await self.message.channel.send(content=split_response)
 
-        if attachments:
-            if len(attachments) > 10:
-                for i in range(10, len(attachments), 10):
-                    await self.message.channel.send(files=attachments[i:i + 10])
+        if attachments and len(attachments) > 10:
+            for i in range(10, len(attachments), 10):
+                await self.message.channel.send(files=attachments[i:i + 10])
                     

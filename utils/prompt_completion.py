@@ -22,7 +22,7 @@ class CompletionHandler:
     def replace_inprompt_mentions(message: discord.message.Message, prompt: str) -> str:
         """Replace the mentions in the prompt with the actual usernames."""
         for user in message.mentions:
-            prompt = prompt.replace(f"<@!{user.id}>", f"{capitalize_first_letter(user.name)}")
+            prompt = prompt.replace(f"<@{user.id}>", f"{capitalize_first_letter(user.name)}")
         return prompt
 
     def prepare_prompt(self, message: discord.message.Message, user_settings: UserSettingsWrapper, prompt: str) -> str:
