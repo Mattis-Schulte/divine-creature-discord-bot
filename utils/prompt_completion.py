@@ -92,11 +92,9 @@ async def complete_prompt(message: discord.message.Message, user_settings: UserS
                 }
             ]
 
-            completion_args = {
-                "model": "gpt-3.5-turbo",
-                "messages": messages,
-                "functions": functions if user_settings.allow_images else None
-            }
+            completion_args = {"model": "gpt-3.5-turbo", "messages": messages}
+            if user_settings.allow_images:
+                completion_args["functions"] = functions
 
             response = await openai.ChatCompletion.acreate(**completion_args)
 

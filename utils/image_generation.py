@@ -2,10 +2,12 @@ import os
 import asyncio
 import aiofiles
 import pyfirefly
+import logging
 from pyfirefly.utils import ImageOptions
 
 FIREFLY_BEARER_TOKEN = os.getenv("FIREFLY_BEARER_TOKEN")
 IMAGE_CACHE_LOCATION = "image_cache/"
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 async def image_factory(generation_id: int, image_descriptions: list, aspect_ratio: str) -> list[str, ...]:
@@ -19,10 +21,15 @@ async def image_factory(generation_id: int, image_descriptions: list, aspect_rat
 
 async def generate_image(firefly_session: pyfirefly.Firefly, prompt: str, img_options: dict, generation_id: int, suffix: int) -> str:
     """Generate an image using Adobe Firefly."""
-    result = await firefly_session.text_to_image(prompt, **img_options)
-    async with aiofiles.open(f"{IMAGE_CACHE_LOCATION}{generation_id}_{suffix}.{result.ext}", mode="wb+") as f:
-        await f.write(result.image)
-        return f"{IMAGE_CACHE_LOCATION}{generation_id}_{suffix}.{result.ext}"
+    try:
+        result = await firefly_session.text_to_image(prompt, **img_options)
+        async with aiofiles.open(f"{IMAGE_CACHE_LOCATION}{generation_id}_{suffix}.{result.ext}", mode="wb+") as f:
+            await f.write(result.image)
+            logging.info(f"Successfully generated image {generation_id}_{suffix}")
+            return f"{IMAGE_CACHE_LOCATION}{generation_id}_{suffix}.{result.ext}"
+    except (pyfirefly.exceptions.ImageGenerationDenied, pyfirefly.exceptions.Unauthorized, pyfirefly.exceptions.SessionExpired):
+        logging.error(f"An error occurred while generating image {generation_id}_{suffix}")
+        return None
 
 
 def clear_image_cache(generation_id: int, number_of_images: int):

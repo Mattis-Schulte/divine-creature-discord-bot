@@ -20,11 +20,6 @@ def split_message(msg: str) -> list[str, ...]:
     return messages
 
 
-def check_attachment_errors(attachments: list[discord.File | None, ...]) -> tuple[list[discord.File, ...], bool]:
-    """Check if the attachments are valid and return a list of valid attachments."""
-    return [attachment for attachment in attachments if attachment is not None], True if any(attachment is None for attachment in attachments) else False
-
-
 async def check_reference_needed(message: discord.message.Message) -> bool:
     """Check if a reference is needed for the response due to other messages being sent in the channel."""
     async for msg in message.channel.history(limit=1):
@@ -34,7 +29,8 @@ async def check_reference_needed(message: discord.message.Message) -> bool:
 async def send_response(message: discord.message.Message, response: str, attachments: list[discord.File | None, ...] = []):
     """Send the response messages in the channel with reference and attachments if needed."""
     split_responses = split_message(response)
-    attachments, attachment_error = check_attachment_errors(attachments)
+    attachments = [attachment for attachment in attachments if attachment is not None]
+
     for i, split_response in enumerate(split_responses):
         if i == 0 and await check_reference_needed(message):
             if attachments and i == len(split_responses) - 1:
@@ -52,5 +48,3 @@ async def send_response(message: discord.message.Message, response: str, attachm
             for i in range(10, len(attachments), 10):
                 await message.channel.send(files=attachments[i:i + 10])
         
-        if attachment_error:
-            await message.channel.send(content="**Note:** At least one image could not be generated, sorry about that.")
