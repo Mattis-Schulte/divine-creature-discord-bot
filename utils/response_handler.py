@@ -29,10 +29,10 @@ class ResponseHandler:
         async for msg in self.message.channel.history(limit=1):
             return True if msg.id != self.message.id else False
 
-    async def send_response(self, response: str, attachments: list[discord.File | None, ...] = []):
+    async def send_response(self, response: str, attachments: list[discord.File | None, ...] = None):
         """Send the response messages in the channel with reference and attachments if needed."""
         split_responses = self.split_message(response)
-        attachments = [attachment for attachment in attachments if attachment is not None]
+        attachments = [attachment for attachment in attachments if attachment is not None] if attachments else []
 
         for i, split_response in enumerate(split_responses):
             if i == 0 and await self.check_reference_needed():

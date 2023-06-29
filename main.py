@@ -76,7 +76,7 @@ class DiscordBot:
 
         @self.bot.event
         async def on_message(message: discord.Message):
-            if f"<@{self.bot.user.id}>" in message.content or message.guild is None and message.author.id != self.bot.user.id:
+            if (f"<@{self.bot.user.id}>" in message.content or message.guild is None) and not message.author.bot:
                 prompt = message.content.replace(f"<@{self.bot.user.id}>", "").strip()
                 async with message.channel.typing():
                     if prompt:

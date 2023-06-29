@@ -6,6 +6,7 @@ import logging
 import pyfirefly
 from pyfirefly.utils import ImageOptions
 
+
 class ImageGenerator:
     FIREFLY_BEARER_TOKEN: str = os.getenv("FIREFLY_BEARER_TOKEN")
     IMAGE_CACHE_LOCATION: str = "image_cache/"

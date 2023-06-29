@@ -8,6 +8,7 @@ from utils.database_utils import UserSettingsWrapper
 from utils.image_generation import ImageGenerator
 from utils.miscellaneous import capitalize_first_letter, beautified_date
 
+
 class CompletionHandler:
     def __init__(self):
         openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -128,7 +129,6 @@ class CompletionHandler:
                     return "I'm currently experiencing connection difficulties, please try again later.", image_locations
                 else:
                     continue
-
 
     async def complete_prompt_legacy(self, message: discord.message.Message, user_settings: UserSettingsWrapper, prompt: str) -> str:
         """Complete the prompt using the legacy model and return the response."""
