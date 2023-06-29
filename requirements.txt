@@ -1,5 +1,8 @@
-py-cord>=2.2.2
-openai>=0.26.0
+redis~=4.6.0
+python-dotenv~=1.0.0
+asyncio~=3.4.3
+py-cord~=2.4.1
+openai~=0.27.8
 aiohttp~=3.8.3
 pyfirefly~=2.0
 aiofiles~=23.1.0
