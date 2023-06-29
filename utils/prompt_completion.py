@@ -49,6 +49,7 @@ def prepare_preprompt(message: discord.message.Message, user_settings: UserSetti
 
 
 async def complete_prompt(message: discord.message.Message, user_settings: UserSettingsWrapper, prompt: str) -> tuple[str, list[discord.File | None, ...]]:
+    print(prompt)
     """Complete the prompt and return the response."""
     preprompt = prepare_preprompt(message, user_settings)
 
@@ -118,7 +119,7 @@ async def complete_prompt(message: discord.message.Message, user_settings: UserS
             user_settings.quota -= int(response["usage"]["total_tokens"])
         response_message = response["choices"][0]["message"]
     
-    return response_message["content"], image_locations
+    return response_message["content"].strip().strip("\""), image_locations
 
 
 async def complete_prompt_legacy(message: discord.message.Message, user_settings: UserSettingsWrapper, prompt: str) -> str:

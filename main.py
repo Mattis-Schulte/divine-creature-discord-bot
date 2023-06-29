@@ -9,7 +9,9 @@ from utils.image_generation import clear_image_cache
 from utils.miscellaneous import capitalize_first_letter, time_until_refresh
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-bot = discord.Bot()
+intents = discord.Intents.default()
+intents.message_content = True
+bot = discord.Bot(intents=intents)
 
 
 async def run_bot():
