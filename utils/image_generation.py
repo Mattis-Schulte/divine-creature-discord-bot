@@ -39,3 +39,4 @@ def clear_image_cache(generation_id: int, number_of_images: int):
             os.remove(f"{IMAGE_CACHE_LOCATION}{generation_id}_{i}.jpeg")
         except FileNotFoundError:
             pass
+        

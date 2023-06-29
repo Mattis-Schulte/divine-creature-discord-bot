@@ -117,7 +117,7 @@ async def complete_prompt(message: discord.message.Message, user_settings: UserS
                 response = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=messages)
 
                 if charge_tokens:
-                    user_settings.quota -= int(response["usage"]["total_tokens"])
+                    user_settings.quota -= int(response["usage"]["total_tokens"]) // 10
 
                 response_message = response["choices"][0]["message"]
 
@@ -154,3 +154,4 @@ async def complete_prompt_legacy(message: discord.message.Message, user_settings
                 raise
             else:
                 continue
+            
