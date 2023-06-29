@@ -33,7 +33,7 @@ async def run_bot():
         allow_images_text = "Yes" if user_settings.allow_images else "No"
 
         embed_description = f"**{capitalize_first_letter(ctx.author.name)}**, here are your current settings and quota, if you wanna know more about them, use the </help:1123348801369952356> command:\n\n" \
-                            f"**Remaining quota:** {user_settings.quota}\n" \
+                            f"**Remaining quota:** {max(user_settings.quota, 0)}\n" \
                             f"**Quota refresh in:** {hours_until_refresh}h, {minutes_until_refresh}min\n" \
                             f"**Selected sentiment:** {sentiment_display_name}\n" \
                             f"**Use legacy model:** {use_legacy_text}\n" \
