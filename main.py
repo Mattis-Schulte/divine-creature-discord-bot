@@ -8,7 +8,7 @@ from utils.prompt_completion import prepare_prompt, complete_prompt, complete_pr
 from utils.image_generation import clear_image_cache
 from utils.miscellaneous import capitalize_first_letter, time_until_refresh
 
-TOKEN = os.getenv("DISCORD_TOKEN")
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 bot = discord.Bot()
 
 
@@ -90,7 +90,7 @@ async def run_bot():
                 else:
                     await send_response(message, "Hello there, I'm a divine being. Ask me anything, or use </help:1123348801369952356> to learn more.")
 
-    await bot.start(TOKEN)
+    await bot.start(DISCORD_TOKEN)
 
 
 if __name__ == "__main__":

@@ -9,7 +9,6 @@ from utils.miscellaneous import calc_refresh_time
 
 load_dotenv()
 REDIS_PWD = os.getenv("REDIS_PWD")
-TOKEN = os.getenv("DISCORD_TOKEN")
 SALTING_VALUE = os.getenv("SALTING_VALUE")
 r = redis.Redis(host="0.0.0.0", port=8080, db=0, password=REDIS_PWD)
 
