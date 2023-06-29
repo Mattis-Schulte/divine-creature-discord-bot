@@ -50,90 +50,109 @@ def prepare_preprompt(message: discord.message.Message, user_settings: UserSetti
 
 async def complete_prompt(message: discord.message.Message, user_settings: UserSettingsWrapper, prompt: str) -> tuple[str, list[discord.File | None, ...]]:
     """Complete the prompt and return the response."""
-    preprompt = prepare_preprompt(message, user_settings)
+    tries = 0
+    while tries < 5:
+        try:
+            preprompt = prepare_preprompt(message, user_settings)
 
-    messages = [
-        {
-            "role": "system",
-            "content": preprompt
-        },
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ]
-
-    functions = [
-        {
-            "name": "generate_image",
-            "description": "Generates images using Adobe Firefly",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "descriptions": {
-                        "type": "array",
-                        "description": "The descriptions of the images to be generated",
-                        "items": {
-                            "type": "string"
-                        }
-                    },
-                    "aspect_ratio": {
-                        "type": "string",
-                        "description": "The aspect ratios of the images to be generated",
-                        "default": "square",
-                        "enum": ["square", "landscape", "portrait", "widescreen"]
-                    }
+            messages = [
+                {
+                    "role": "system",
+                    "content": preprompt
                 },
-                "required": ["descriptions", "aspect_ratio"]
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+
+            functions = [
+                {
+                    "name": "generate_image",
+                    "description": "Generates images using Adobe Firefly",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "descriptions": {
+                                "type": "array",
+                                "description": "The descriptions of the images to be generated",
+                                "items": {
+                                    "type": "string"
+                                }
+                            },
+                            "aspect_ratio": {
+                                "type": "string",
+                                "description": "The aspect ratios of the images to be generated",
+                                "default": "square",
+                                "enum": ["square", "landscape", "portrait", "widescreen"]
+                            }
+                        },
+                        "required": ["descriptions", "aspect_ratio"]
+                    }
+                }
+            ]
+
+            completion_args = {
+                "model": "gpt-3.5-turbo",
+                "messages": messages,
+                "functions": functions if user_settings.allow_images else None
             }
-        }
-    ]
 
-    completion_args = {"model": "gpt-3.5-turbo", "messages": messages}
-    if user_settings.allow_images:
-        completion_args["functions"] = functions
-    response = await openai.ChatCompletion.acreate(**completion_args)
+            response = await openai.ChatCompletion.acreate(**completion_args)
 
-    charge_tokens = message.guild is None or message.guild.id not in PRIVILEGED_GUILDS
-    if charge_tokens:
-        user_settings.quota -= int(response["usage"]["total_tokens"]) // 10
-    response_message = response["choices"][0]["message"]
-    image_locations = []
+            charge_tokens = message.guild is None or message.guild.id not in PRIVILEGED_GUILDS
+            if charge_tokens:
+                user_settings.quota -= int(response["usage"]["total_tokens"]) // 10
 
-    if response_message.get("function_call"):
-        args = json.loads(response_message["function_call"]["arguments"])
-        image_locations = await image_factory(message.id, args["descriptions"], args["aspect_ratio"])
-        image_locations = [discord.File(image_location) if image_location is not None else None for image_location in image_locations]
-        success_state = not any(location is None for location in image_locations)
+            response_message = response["choices"][0]["message"]
+            image_locations = []
 
-        messages.append(response_message)
-        if success_state:
-            messages.append({"role": "function", "name": "generate_image", "content": "Successfully generated all images."})
-        else:
-            messages.append({"role": "function", "name": "generate_image", "content": "Failed to generate at least one image, sorry for that."})
+            if response_message.get("function_call"):
+                args = json.loads(response_message["function_call"]["arguments"])
+                image_locations = await image_factory(message.id, args["descriptions"], args["aspect_ratio"])
+                image_locations = [discord.File(image_location) if image_location is not None else None for image_location in image_locations]
+                success_state = not any(location is None for location in image_locations)
 
-        response = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=messages)
-        
-        if charge_tokens:
-            user_settings.quota -= int(response["usage"]["total_tokens"])
-        response_message = response["choices"][0]["message"]
-    
-    return response_message["content"].strip().strip("\""), image_locations
+                messages.append(response_message)
+                messages.append({"role": "function", "name": "generate_image", "content": "Successfully generated all images."} if success_state else {"role": "function", "name": "generate_image", "content": "Failed to generate at least one image, sorry for that."})
+
+                response = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=messages)
+
+                if charge_tokens:
+                    user_settings.quota -= int(response["usage"]["total_tokens"])
+
+                response_message = response["choices"][0]["message"]
+
+            return response_message["content"].strip().strip("\""), image_locations
+
+        except (openai.error.ServiceUnavailableError, openai.error.RateLimitError, openai.error.APIError):
+            tries += 1
+            if tries >= 5:
+                raise
+            else:
+                continue
 
 
 async def complete_prompt_legacy(message: discord.message.Message, user_settings: UserSettingsWrapper, prompt: str) -> str:
     """Complete the prompt using the legacy model and return the response."""
-    response = await openai.Completion.acreate(
-        engine="text-davinci-003",
-        prompt=prompt,
-        temperature=0.9,
-        max_tokens=425,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0
-    )
+    tries = 0
+    while tries < 5:
+        try:
+            response = await openai.Completion.acreate(
+                engine="text-davinci-003",
+                prompt=prompt,
+                temperature=0.9,
+                max_tokens=425,
+                top_p=1,
+                frequency_penalty=0,
+                presence_penalty=0
+            )
 
-    charge_tokens = message.guild is None or message.guild.id not in PRIVILEGED_GUILDS
-    if charge_tokens:
-        user_settings.quota -= int(response["usage"]["total_tokens"])
-    return response["choices"][0]["text"].strip().strip("\"")
+            return response["choices"][0]["text"].strip().strip("\"")
+
+        except (openai.error.ServiceUnavailableError, openai.error.RateLimitError, openai.error.APIError):
+            tries += 1
+            if tries >= 5:
+                raise
+            else:
+                continue

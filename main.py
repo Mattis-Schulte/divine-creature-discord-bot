@@ -20,7 +20,7 @@ async def run_bot():
     @bot.command(name="help", description="Get to know more about this bot.")
     async def overview(ctx):
         await ctx.respond(embed=discord.Embed(
-            description=f"Hello there! I'm a bot that uses AI to answer your questions. Just mention me at the start of your question and I'll try my best to help you. You can also change the tone of my replies by using the </sentiment:1071764449922404412> command. Available tones are: **{', '.join(SENTIMENTS_DISPLAY_NAMES)}.**\n\nPlease remember, each answer costs some tokens and you can only use up to **{DEFAULT_QUOTA} tokens** per day. To check how many tokens you have left and when they will be refilled, use the </quota:1071568078099460127> command.\n\nYou can also use the </images:1100157891941511360> command to decide if you want me to add images made by Adobe Firefly (an AI image generation tool) to my answers.",
+            description=f"Hello there! I'm a bot that uses AI to answer your questions. Just mention me at the start of your question and I'll try my best to help you. You can also change the tone of my replies by using the </sentiment:1123768896797814814> command. Available tones are: **{', '.join(SENTIMENTS_DISPLAY_NAMES)}.**\n\nPlease remember, each answer costs some tokens and you can only use up to **{DEFAULT_QUOTA} tokens** per day. To check how many tokens you have left, when they will be refilled, or what your current settings are, use the </settings:1123761931010977914> command.\n\nYou can also use the </images:1123775397838999624> command to decide if you want me to add images made by Adobe Firefly (an AI image generation tool) to my answers.",
             color=0xb4bcac
         ))
 
