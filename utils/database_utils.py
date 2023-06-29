@@ -55,7 +55,7 @@ class UserSettingsWrapper:
             refresh_time=calc_refresh_time(),
             sentiment=DEFAULT_SENTIMENT,
             use_legacy=int(False),
-            allow_images=int(True)
+            allow_images=int(False)
         )
 
     @staticmethod
