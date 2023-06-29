@@ -41,8 +41,6 @@ class UserSettingsWrapper:
         else:
             user_settings = self.parse_user_settings(user_settings)
 
-        print(user_settings)
-
         if user_settings.refresh_time < int(time()):
             user_settings = user_settings._replace(refresh_time=calc_refresh_time(), quota=DEFAULT_QUOTA)
             self.set_user_settings({"refresh_time": user_settings.refresh_time, "quota": user_settings.quota})

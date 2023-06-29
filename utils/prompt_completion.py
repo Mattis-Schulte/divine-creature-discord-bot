@@ -90,12 +90,10 @@ async def complete_prompt(message: discord.message.Message, user_settings: UserS
         }
     ]
 
-    response = await openai.ChatCompletion.acreate(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        functions=functions,
-        function_call="auto"
-    )
+    completion_args = {"model": "gpt-3.5-turbo", "messages": messages}
+    if user_settings.allow_images:
+        completion_args["functions"] = functions
+    response = await openai.ChatCompletion.acreate(**completion_args)
 
     charge_tokens = message.guild is None or message.guild.id not in PRIVILEGED_GUILDS
     if charge_tokens:

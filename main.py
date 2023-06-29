@@ -45,10 +45,15 @@ async def run_bot():
     async def sentiment(ctx, sentiment: discord.Option(str, name="sentiment", description="The sentiment you want the bot to use.", choices=SENTIMENTS_DISPLAY_NAMES)):
         user_settings = UserSettingsWrapper(ctx.author.id)
         for key, value in SENTIMENTS.items():
-            if value["display_name"] == sentiment:
+            if value["display_name"] == sentiment.removesuffix(" (Default)"):
                 user_settings.sentiment = key
                 break
-        await ctx.respond(content=f"**{capitalize_first_letter(ctx.author.name)}**, your selected sentiment has been changed to **\"{SENTIMENTS[user_settings.sentiment]['display_name']}\"**.")
+        
+        sentiment_display_name = SENTIMENTS[user_settings.sentiment]["display_name"]
+        if user_settings.sentiment == DEFAULT_SENTIMENT:
+            sentiment_display_name += " (Default)"
+        
+        await ctx.respond(content=f"**{capitalize_first_letter(ctx.author.name)}**, your selected sentiment has been changed to **\"{sentiment_display_name}\"**.")
     
     @bot.command(name="legacy", description="Toggle the use of the legacy model.")
     async def legacy(ctx):
