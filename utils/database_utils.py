@@ -72,8 +72,10 @@ class UserSettingsWrapper:
         if isinstance(settings, UserSettings):
             settings = settings._asdict()
         
-        for key, value in settings.items():
-            r.hset(f"user_settings:{self.user_hash}", key, value)
+        with r.pipeline() as pipe:
+            for key, value in settings.items():
+                r.hset(f"user_settings:{self.user_hash}", key, value)
+            pipe.execute()
 
     def __getattr__(self, item: str) -> str | int:
         """Get attribute from UserSettings namedtuple."""
