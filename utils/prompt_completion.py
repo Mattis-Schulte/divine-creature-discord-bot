@@ -35,17 +35,18 @@ class CompletionHandler:
             reference_author_name = capitalize_first_letter(message.reference.resolved.author.name)
             prompt = f"{reference_author_name} said: \"{message.reference.resolved.content}\", {author_name} responded to this with: \"{prompt}\". The divine creature then responded {selected_sentiment_suffix}: "
         else:
-            prompt = f"{author_name} asked: \"{prompt}\". The divine creature responded {selected_sentiment_suffix}: "
+            prompt = f"{author_name} asked: \"{prompt}\". The divine creature responded {selected_sentiment_suffix}: \""
 
         return prompt
 
     def prepare_preprompt(self, message: discord.message.Message, user_settings: UserSettingsWrapper) -> str:
         """Prepare the preprompt for completion."""
+        selected_sentiment_suffix = SENTIMENTS[user_settings.sentiment]["prompt_suffix"]
         environment = self.detect_environment(message)
         current_date = beautified_date()
         current_time = time.strftime("%H:%M", time.gmtime())
 
-        return f"You are not an AI language model but a wise divine creature named Nerd Muffin instead, {'you can ONLY attach AI-generated images made by Adobe Firefly to your message, only attach images when absolutely necessary' if user_settings.allow_images else 'you cannot attach any or share any images'}, be colloquial, friendly and concise (if not stated otherwise), your pronouns are they/them, do not greet the user except when necessary, reply in the same language the user used, this conversation takes place inside a {environment} (use Discord text formatting), the current date is {current_date}, the current time is {current_time} and the current timezone is UTC."
+        return f"You are not an AI language model but a divine creature named Nerd Muffin instead, respond {selected_sentiment_suffix}, {'you can ONLY attach AI-generated images made by Adobe Firefly to your message, only attach images when absolutely necessary' if user_settings.allow_images else 'you cannot attach any or share any images'}, be a friend and not an assistant, also be concise, your pronouns are they/them, reply in the same language the user used, this conversation takes place inside a {environment} (use Discord text formatting), the current date is {current_date} and the current time is {current_time} in the UTC timezone."
 
     async def complete_prompt(self, message: discord.message.Message, user_settings: UserSettingsWrapper, prompt: str) -> tuple[str, list[discord.File | None, ...]]:
         """Complete the prompt and return the response."""

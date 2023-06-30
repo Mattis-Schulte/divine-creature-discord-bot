@@ -39,7 +39,7 @@ class DiscordBot:
 
             embed_description = f"**{capitalize_first_letter(ctx.author.name)}**, here are your current settings and quota, if you wanna know more about them, use the </help:1123348801369952356> command:\n\n" \
                                 f"**Remaining quota:** {max(user_settings.quota, 0)}\n" \
-                                f"**Quota refresh in:** {hours_until_refresh}h, {minutes_until_refresh}min\n" \
+                                f"**Quota refresh in:** {hours_until_refresh}h {minutes_until_refresh}min\n" \
                                 f"**Selected sentiment:** {sentiment_display_name}\n" \
                                 f"**Use legacy model:** {use_legacy_text}\n" \
                                 f"**Allow image attachments:** {allow_images_text}"
