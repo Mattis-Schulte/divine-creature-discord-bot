@@ -21,7 +21,13 @@ class UserSettings(NamedTuple):
     allow_images: int
 
 
-class UserSettingsWrapper:
+class UserSettingsHandler:
+    """
+    User settings handler for the Redis database.
+
+    :param user_id: The user's ID.
+    """
+
     def __init__(self, user_id):
         self.user_id = user_id
         self.user_hash = self.hash_user_id(user_id)

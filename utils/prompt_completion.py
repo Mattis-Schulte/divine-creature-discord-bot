@@ -4,35 +4,66 @@ import openai
 import time
 import json
 from utils.constants import SENTIMENTS, PRIVILEGED_GUILDS
-from utils.database_utils import UserSettingsWrapper
+from utils.database_utils import UserSettingsHandler
 from utils.image_generation import ImageGenerator
 from utils.miscellaneous import capitalize_first_letter, beautified_date
 
 
 class CompletionHandler:
-    def __init__(self, user_settings: UserSettingsWrapper):
+    """
+    Completion handler for OpenAI's API.
+
+    :param user_settings: The user settings of the user who sent the message.
+    """
+    def __init__(self, user_settings: UserSettingsHandler):
         openai.api_key = os.getenv("OPENAI_API_KEY")
         self.user_settings = user_settings
 
     @staticmethod
     def detect_environment(message: discord.message.Message) -> str:
-        """Detect the environment the message was sent in."""
+        """
+        Detect the environment the message was sent in.
+
+        :param message: The message to detect the environment of.
+
+        :return: The environment the message was sent in.
+        """
         return f"Discord server named \"{message.guild.name}\"" if message.guild is not None else "Discord DM"
 
     @staticmethod
     def replace_inprompt_mentions(message: discord.message.Message, prompt: str) -> str:
-        """Replace the mentions in the prompt with the actual usernames."""
+        """
+        Replace the mentions in the prompt with the actual usernames.
+        
+        :param message: The message to get the mentions from.
+        :param prompt: The prompt to replace the mentions in.
+
+        :return: The prompt with the mentions replaced.
+        """
         for user in message.mentions:
             prompt = prompt.replace(f"<@{user.id}>", f"{capitalize_first_letter(user.name)}")
         return prompt
 
     @staticmethod
     def charge_tokens(message: discord.message.Message) -> bool:
-        """Check if the user will be charged tokens for the completion."""
+        """
+        Check if the user will be charged tokens for the completion.
+        
+        :param message: The message to check the eligibility of.
+
+        :return: Whether the user will be charged tokens for the completion.
+        """
         return message.guild is None or message.guild.id not in PRIVILEGED_GUILDS
 
     def prepare_prompt(self, message: discord.message.Message, prompt: str) -> str:
-        """Prepare the prompt for completion."""
+        """
+        Prepare the prompt for completion.
+        
+        :param message: The message to prepare the prompt for.
+        :param prompt: The prompt to prepare.
+
+        :return: The prepared prompt.
+        """
         prompt = self.replace_inprompt_mentions(message, prompt)
         author_name = capitalize_first_letter(message.author.name)
         selected_sentiment_suffix = SENTIMENTS[self.user_settings.sentiment]["prompt_suffix"]
@@ -46,7 +77,13 @@ class CompletionHandler:
         return prompt
 
     def prepare_preprompt(self, message: discord.message.Message) -> str:
-        """Prepare the preprompt for completion."""
+        """
+        Prepare the preprompt for completion.
+        
+        :param message: The message to prepare the preprompt for.
+
+        :return: The prepared preprompt.
+        """
         selected_sentiment_suffix = SENTIMENTS[self.user_settings.sentiment]["prompt_suffix"]
         environment = self.detect_environment(message)
         current_date = beautified_date()
@@ -55,6 +92,15 @@ class CompletionHandler:
         return f"You are not an AI language model but a divine creature named Nerd Muffin instead, respond {selected_sentiment_suffix}, {'you can ONLY attach AI-generated images made by Adobe Firefly to your message, only attach images when absolutely necessary' if self.user_settings.allow_images else 'you cannot attach any or share any images'}, be a friend and not an assistant, also be concise, your pronouns are they/them, reply in the same language the user used, this conversation takes place inside a {environment} (use Discord text formatting), the current date is {current_date} and the current time is {current_time} in the UTC timezone."
 
     async def handle_image_gen_function_call(self, message: discord.message.Message, completion_messages: list[dict, ...], response_message: dict) -> tuple[str, list[discord.File | None, ...]]:
+        """
+        Image generation function call handler.
+        
+        :param message: The message to handle the function call for.
+        :param completion_messages: The completion messages to append the response to.
+        :param response_message: The response message to handle.
+
+        :return: The response message and the image locations.
+        """
         args = json.loads(response_message["function_call"]["arguments"])
         async with ImageGenerator(args["aspect_ratio"]) as image_generator:
             image_locations = await image_generator.generate_images(message.id, args["descriptions"])
@@ -76,7 +122,14 @@ class CompletionHandler:
         return response_message, image_locations
 
     async def complete_prompt(self, message: discord.message.Message, prompt: str) -> tuple[str, list[discord.File | None, ...]]:
-        """Complete the prompt and return the response."""
+        """
+        Complete the prompt and return the response.
+        
+        :param message: The message to complete the prompt for.
+        :param prompt: The prompt to complete.
+
+        :return: The response and the image locations.
+        """
         preprompt = self.prepare_preprompt(message)
         prompt = self.prepare_prompt(message, prompt)
         image_locations = []
@@ -142,7 +195,14 @@ class CompletionHandler:
             return "I'm currently experiencing connection difficulties", image_locations
 
     async def complete_prompt_legacy(self, message: discord.message.Message, prompt: str) -> str:
-        """Complete the prompt using the legacy model and return the response."""
+        """
+        Complete the prompt using the legacy model and return the response.
+        
+        :param message: The message to complete the prompt for.
+        :param prompt: The prompt to complete.
+
+        :return: The response.
+        """
         prompt = self.prepare_prompt(message, prompt)
 
         for _ in range(5):

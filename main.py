@@ -2,7 +2,7 @@ import os
 import asyncio
 import discord
 from utils.constants import PRIVILEGED_GUILDS, SENTIMENTS, DEFAULT_SENTIMENT, DEFAULT_QUOTA
-from utils.database_utils import UserSettingsWrapper
+from utils.database_utils import UserSettingsHandler
 from utils.response_handler import ResponseHandler
 from utils.prompt_completion import CompletionHandler
 from utils.miscellaneous import capitalize_first_letter, time_until_refresh
@@ -28,7 +28,7 @@ class DiscordBot:
 
         @self.bot.command(name="settings", description="View your current settings and quota.")
         async def settings(ctx):
-            user_settings = UserSettingsWrapper(ctx.author.id)
+            user_settings = UserSettingsHandler(ctx.author.id)
             hours_until_refresh, minutes_until_refresh = time_until_refresh(user_settings.refresh_time)
             sentiment_display_name = SENTIMENTS[user_settings.sentiment]["display_name"]
             if user_settings.sentiment == DEFAULT_SENTIMENT:
@@ -47,7 +47,7 @@ class DiscordBot:
 
         @self.bot.command(name="sentiment", description="Change the tone of the bot's replies.")
         async def sentiment(ctx, sentiment: discord.Option(str, name="sentiment", description="The sentiment you want the bot to use.", choices=self.SENTIMENTS_DISPLAY_NAMES)):
-            user_settings = UserSettingsWrapper(ctx.author.id)
+            user_settings = UserSettingsHandler(ctx.author.id)
             for key, value in SENTIMENTS.items():
                 if value["display_name"] == sentiment.removesuffix(" (Default)"):
                     user_settings.sentiment = key
@@ -61,14 +61,14 @@ class DiscordBot:
 
         @self.bot.command(name="legacy", description="Toggle the use of the legacy model.")
         async def legacy(ctx):
-            user_settings = UserSettingsWrapper(ctx.author.id)
+            user_settings = UserSettingsHandler(ctx.author.id)
             user_settings.use_legacy = int(not user_settings.use_legacy)
             use_legacy_text = "enabled" if user_settings.use_legacy else "disabled"
             await ctx.respond(content=f"**{capitalize_first_letter(ctx.author.name)}**, you have {use_legacy_text} the legacy model.")
 
         @self.bot.command(name="images", description="Toggle the use of images in the bot's replies.")
         async def images(ctx):
-            user_settings = UserSettingsWrapper(ctx.author.id)
+            user_settings = UserSettingsHandler(ctx.author.id)
             user_settings.allow_images = int(not user_settings.allow_images)
             allow_images_text = "enabled" if user_settings.allow_images else "disabled"
             await ctx.respond(content=f"**{capitalize_first_letter(ctx.author.name)}**, you have {allow_images_text} image attachments.")
@@ -82,7 +82,7 @@ class DiscordBot:
                         if len(prompt) > 1200:
                             await ResponseHandler(message).send_response("Whoa, that's a lot of text, I can't be bothered to read that.")
                         else:
-                            user_settings = UserSettingsWrapper(message.author.id)
+                            user_settings = UserSettingsHandler(message.author.id)
                             if user_settings.quota > 0 or message.guild is not None and message.guild.id in PRIVILEGED_GUILDS and not user_settings.use_legacy:
                                 if not user_settings.use_legacy:
                                     completion, image_locations = await CompletionHandler(user_settings).complete_prompt(message, prompt)

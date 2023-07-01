@@ -22,6 +22,7 @@ def time_until_refresh(refresh_time: int = calc_refresh_time()) -> tuple[int, in
     
 
 def beautified_date() -> str:
+    """Return the current date in a written format."""
     DAY_SUFFIXES = {"1": "st", "2": "nd", "3": "rd"}
     weekday = time.strftime("%A", time.gmtime())
     month = time.strftime("%B", time.gmtime())

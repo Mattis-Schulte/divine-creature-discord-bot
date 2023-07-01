@@ -2,13 +2,24 @@ import discord
 
 
 class ResponseHandler:
+    """
+    Response handler for sending messages in Discord.
+
+    :param message: The message to respond to.
+    """
     DISCORD_MESSAGE_LIMIT = 2000
 
     def __init__(self, message: discord.message.Message):
         self.message = message
 
     def split_message(self, msg: str) -> list[str]:
-        """Split a message into multiple messages if it exceeds the Discord message limit."""
+        """
+        Split a message into multiple messages if it exceeds the Discord message limit.
+        
+        :param msg: The message to split.
+
+        :return: A list of messages.
+        """
         if len(msg) <= self.DISCORD_MESSAGE_LIMIT:
             return [msg]
 
@@ -25,12 +36,21 @@ class ResponseHandler:
         return messages
 
     async def check_reference_needed(self) -> bool:
-        """Check if a reference is needed for the response due to other messages being sent in the channel."""
+        """
+        Check if a reference is needed for the response due to other messages being sent in the channel.
+        
+        :return: True if a reference is needed, False otherwise.
+        """
         async for msg in self.message.channel.history(limit=1):
             return True if msg.id != self.message.id else False
 
     async def send_response(self, response: str, attachments: list[discord.File | None, ...] = None):
-        """Send the response messages in the channel with reference and attachments if needed."""
+        """
+        Send the response messages in the channel with reference and attachments if needed.
+        
+        :param response: The response to send.
+        :param attachments: The attachments to send.
+        """
         split_responses = self.split_message(response)
         attachments = [attachment for attachment in attachments if attachment is not None] if attachments else []
 
