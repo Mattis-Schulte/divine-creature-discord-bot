@@ -1,7 +1,7 @@
 import os
 import redis
 import hashlib
-from time import time
+import time
 from dotenv import load_dotenv
 from typing import NamedTuple
 from utils.constants import DEFAULT_SENTIMENT, DEFAULT_QUOTA
@@ -47,7 +47,7 @@ class UserSettingsHandler:
         else:
             user_settings = self.parse_user_settings(user_settings)
 
-        if user_settings.refresh_time < int(time()):
+        if user_settings.refresh_time < int(time.mktime(time.gmtime())):
             user_settings = user_settings._replace(refresh_time=calc_refresh_time(), quota=DEFAULT_QUOTA)
             self.set_user_settings({"refresh_time": user_settings.refresh_time, "quota": user_settings.quota})
 

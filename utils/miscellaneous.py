@@ -9,12 +9,13 @@ def capitalize_first_letter(string: str) -> str:
 
 def calc_refresh_time() -> int:
     """Calculate the time when the user's quota is refilled."""
-    return int((datetime.now() + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
+    tomorrow = int(time.mktime(time.gmtime())) + 86400
+    return tomorrow - (tomorrow % 86400)
 
 
 def time_until_refresh(refresh_time: int = calc_refresh_time()) -> tuple[int, int]:
     """Calculate the time until the user's quota is refilled."""
-    time_until = refresh_time - int(time.time())
+    time_until = refresh_time - int(time.mktime(time.gmtime()))
     hours = time_until // 3600
     minutes = (time_until % 3600) // 60
 
