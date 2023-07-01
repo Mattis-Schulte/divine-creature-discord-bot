@@ -5,7 +5,6 @@ from utils.constants import PRIVILEGED_GUILDS, SENTIMENTS, DEFAULT_SENTIMENT, DE
 from utils.database_utils import UserSettingsWrapper
 from utils.response_handler import ResponseHandler
 from utils.prompt_completion import CompletionHandler
-from utils.image_generation import clear_image_cache
 from utils.miscellaneous import capitalize_first_letter, time_until_refresh
 
 
@@ -86,11 +85,10 @@ class DiscordBot:
                             user_settings = UserSettingsWrapper(message.author.id)
                             if user_settings.quota > 0 or message.guild is not None and message.guild.id in PRIVILEGED_GUILDS and not user_settings.use_legacy:
                                 if not user_settings.use_legacy:
-                                    completion, image_locations = await CompletionHandler().complete_prompt(message, user_settings, prompt)
+                                    completion, image_locations = await CompletionHandler(user_settings).complete_prompt(message, prompt)
                                     await ResponseHandler(message).send_response(completion, image_locations)
-                                    clear_image_cache(message.id, len(image_locations))
                                 else:
-                                    completion = await CompletionHandler().complete_prompt_legacy(message, user_settings, prompt)
+                                    completion = await CompletionHandler(user_settings).complete_prompt_legacy(message, user_settings, prompt)
                                     await ResponseHandler(message).send_response(completion)
                             else:
                                 hours_until_refresh, minutes_until_refresh = time_until_refresh(user_settings.refresh_time)
