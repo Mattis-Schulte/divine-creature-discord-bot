@@ -54,7 +54,7 @@ class CompletionHandler:
 
         return f"You are not an AI language model but a divine creature named Nerd Muffin instead, respond {selected_sentiment_suffix}, {'you can ONLY attach AI-generated images made by Adobe Firefly to your message, only attach images when absolutely necessary' if self.user_settings.allow_images else 'you cannot attach any or share any images'}, be a friend and not an assistant, also be concise, your pronouns are they/them, reply in the same language the user used, this conversation takes place inside a {environment} (use Discord text formatting), the current date is {current_date} and the current time is {current_time} in the UTC timezone."
 
-    async def handle_function_call(self, message: discord.message.Message, completion_messages: list[dict, ...], response_message: dict) -> tuple[str, list[discord.File | None, ...]]:
+    async def handle_image_gen_function_call(self, message: discord.message.Message, completion_messages: list[dict, ...], response_message: dict) -> tuple[str, list[discord.File | None, ...]]:
         args = json.loads(response_message["function_call"]["arguments"])
         async with ImageGenerator(args["aspect_ratio"]) as image_generator:
             image_locations = await image_generator.generate_images(message.id, args["descriptions"])
@@ -132,7 +132,7 @@ class CompletionHandler:
                 response_message = response["choices"][0]["message"]
 
                 if response_message.get("function_call"):
-                    response_message, image_locations = await self.handle_function_call(message, messages, response_message)
+                    response_message, image_locations = await self.handle_image_gen_function_call(message, messages, response_message)
 
                 return response_message["content"].strip().strip("\""), image_locations
 

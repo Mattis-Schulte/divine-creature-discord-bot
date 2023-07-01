@@ -43,7 +43,6 @@ class ImageGenerator:
             return None
 
         try:
-            pyfirefly.Result
             result = await self.firefly_session.text_to_image(prompt, **img_options.options)
             logging.info(f"Successfully generated image {image_name}")
             return discord.File(io.BytesIO(result.image), filename=f"{image_name}.{result.ext}", description=prompt)
