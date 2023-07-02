@@ -1,8 +1,9 @@
+import asyncio
 import os
-import redis
 import hashlib
 import time
 from dotenv import load_dotenv
+from redis.asyncio import Redis as aioredis
 from typing import NamedTuple
 from utils.constants import DEFAULT_SENTIMENT, DEFAULT_QUOTA
 from utils.miscellaneous import calc_refresh_time
@@ -10,7 +11,23 @@ from utils.miscellaneous import calc_refresh_time
 load_dotenv()
 REDIS_PWD = os.getenv("REDIS_PWD")
 SALTING_VALUE = os.getenv("SALTING_VALUE")
-r = redis.Redis(host="0.0.0.0", port=8080, db=0, password=REDIS_PWD)
+
+
+class RedisConnection:
+    """
+    Redis connection handler.
+
+    :param db: The database to connect to.
+    """
+    def __init__(self, db: int = 0):
+        self.db = db
+
+    async def __aenter__(self):
+        self.conn = await aioredis(host="0.0.0.0", port=8080, db=self.db, password=REDIS_PWD, decode_responses=True)
+        return self.conn
+
+    async def __aexit__(self, exc_type, exc, tb):
+        await self.conn.close()
 
 
 class UserSettings(NamedTuple):
@@ -28,10 +45,10 @@ class UserSettingsHandler:
     :param user_id: The user's ID.
     """
 
-    def __init__(self, user_id):
+    def __init__(self, user_id: int):
         self.user_id = user_id
         self.user_hash = self.hash_user_id(user_id)
-        self.settings = self.get_user_settings()
+        self.settings = None
 
     @staticmethod
     def hash_user_id(user_id: int) -> str:
@@ -43,30 +60,34 @@ class UserSettingsHandler:
         :return: The hashed user ID.
         """
         return hashlib.blake2b((SALTING_VALUE + str(user_id)).encode(), digest_size=16).hexdigest()
-    
-    def get_user_settings(self) -> UserSettings:
+
+    async def get_user_settings(self) -> UserSettings:
         """
-        Get the user settings from Redis database.
+        Get the user settings from Redis.
         
-        :return: The user settings.
+        :return: The instance object.
         """
-        user_settings = r.hgetall(f"user_settings:{self.user_hash}")
+        async with RedisConnection() as r:
+            user_settings = await r.hgetall(f"user_settings:{self.user_hash}")
+
         if not user_settings:
             user_settings = self.default_user_settings()
-            self.set_user_settings(user_settings)
+            await self.set_user_settings(user_settings)
         else:
             user_settings = self.parse_user_settings(user_settings)
 
         if user_settings.refresh_time < int(time.mktime(time.gmtime())):
             user_settings = user_settings._replace(refresh_time=calc_refresh_time(), quota=DEFAULT_QUOTA)
-            self.set_user_settings({"refresh_time": user_settings.refresh_time, "quota": user_settings.quota})
+            await self.set_user_settings({"refresh_time": user_settings.refresh_time, "quota": user_settings.quota})
 
-        return user_settings
+        self.settings = user_settings
+
+        return self
 
     @staticmethod
     def default_user_settings() -> UserSettings:
         """
-        Return the default user settings as a UserSettings numedtuple.
+        Return the default user settings as a UserSettings named tuple.
         
         :return: The default user settings.
         """
@@ -81,35 +102,35 @@ class UserSettingsHandler:
     @staticmethod
     def parse_user_settings(settings: dict) -> UserSettings:
         """
-        Parse user settings from Redis hash to a UserSettings namedtuple.
+        Parse user settings from Redis hash to a UserSettings named tuple.
         
-        :param settings: The user settings from Redis database.
+        :param settings: The user settings from Redis.
         
         :return: The parsed user settings.
         """
         parsed_settings = {
-            key.decode(): UserSettings.__annotations__.get(key.decode(), str)(value.decode()) 
-            if key.decode() in UserSettings.__annotations__ else None for key, value in settings.items()
+            key: UserSettings.__annotations__.get(key, str)(value)
+            for key, value in settings.items() if key in UserSettings.__annotations__
         }
         return UserSettings(**parsed_settings)
 
-    def set_user_settings(self, settings: UserSettings | dict):
+    async def set_user_settings(self, settings: UserSettings | dict):
         """
-        Save user settings to Redis database.
+        Save user settings to Redis.
         
-        :param settings: The user settings to save, either as a UserSettings namedtuple or a dict.
+        :param settings: The user settings to save, either as a UserSettings named tuple or a dict.
         """
         if isinstance(settings, UserSettings):
             settings = settings._asdict()
-        
-        with r.pipeline() as pipe:
+
+        async with RedisConnection() as r, r.pipeline(transaction=True) as pipe:
             for key, value in settings.items():
-                r.hset(f"user_settings:{self.user_hash}", key, value)
-            pipe.execute()
+                await pipe.hset(f"user_settings:{self.user_hash}", key, value)
+            await pipe.execute()
 
     def __getattr__(self, item: str) -> str | int:
         """
-        Get a attribute from the UserSettings namedtuple or the object itself.
+        Get an attribute from the UserSettings named tuple or the object itself.
         
         :param item: The attribute to get.
 
@@ -122,13 +143,13 @@ class UserSettingsHandler:
 
     def __setattr__(self, name: str, value: str | int):
         """
-        Set an attribute in the UserSettings namedtuple and call set_user_settings() or set the attribute in the object itself.
+        Set an attribute in the UserSettings named tuple and call set_user_settings_async() or set the attribute in the object itself.
         
         :param name: The attribute to set.
         :param value: The value to set the attribute to.
         """
         if name in UserSettings._fields:
             self.settings = self.settings._replace(**{name: value})
-            self.set_user_settings({name: value})
+            asyncio.create_task(self.set_user_settings({name: value}))
         else:
             super().__setattr__(name, value)
