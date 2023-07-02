@@ -70,7 +70,7 @@ class CompletionHandler:
 
         if message.reference is not None:
             reference_author_name = capitalize_first_letter(message.reference.resolved.author.name)
-            prompt = f"{reference_author_name} said: \"{message.reference.resolved.content}\", {author_name} responded to this with: \"{prompt}\". The divine creature then responded {selected_sentiment_suffix}: \""
+            prompt = f"{reference_author_name} said: \"{message.reference.resolved.content}\", {author_name} responded to this with: \"{prompt}\". The divine creature then responded {selected_sentiment_suffix} to {author_name}'s message: \""
         else:
             prompt = f"{author_name} asked: \"{prompt}\". The divine creature responded {selected_sentiment_suffix}: \""
 
@@ -164,7 +164,7 @@ class CompletionHandler:
                                 "aspect_ratio": {
                                     "type": "string",
                                     "description": "The aspect ratios of the images to be generated",
-                                    "default": "square",
+                                    "default": "landscape",
                                     "enum": ["square", "landscape", "portrait", "widescreen"]
                                 }
                             },
