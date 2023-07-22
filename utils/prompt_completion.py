@@ -1,8 +1,8 @@
-import os
 import discord
-import openai
-import time
 import json
+import openai
+import os
+import time
 from utils.constants import SENTIMENTS, PRIVILEGED_GUILDS
 from utils.database_utils import UserSettingsHandler
 from utils.image_generation import ImageGenerator
@@ -15,6 +15,8 @@ class CompletionHandler:
 
     :param user_settings: The user settings of the user who sent the message.
     """
+    CONNECTION_ERROR_MESSAGE = "I'm currently experiencing connection difficulties, please try again later."
+
     def __init__(self, user_settings: UserSettingsHandler):
         openai.api_key = os.getenv("OPENAI_API_KEY")
         self.user_settings = user_settings
@@ -70,17 +72,19 @@ class CompletionHandler:
 
         if message.reference is not None:
             reference_author_name = capitalize_first_letter(message.reference.resolved.author.name)
-            prompt = f"{reference_author_name} said: \"{message.reference.resolved.content}\", {author_name} responded to this with: \"{prompt}\". The divine creature then responded {selected_sentiment_suffix} to {author_name}'s message: \""
+            reference_message = self.replace_inprompt_mentions(message, message.reference.resolved.content)
+            prompt = f"{reference_author_name} said: \"{reference_message}\", {author_name} responded to this with: \"{prompt}\". The divine creature then responded {selected_sentiment_suffix} to {author_name}'s message: \""
         else:
             prompt = f"{author_name} asked: \"{prompt}\". The divine creature responded {selected_sentiment_suffix}: \""
 
         return prompt
 
-    def prepare_preprompt(self, message: discord.message.Message) -> str:
+    def prepare_preprompt(self, message: discord.message.Message, preprompts_args: str = None) -> str:
         """
         Prepare the preprompt for completion.
         
         :param message: The message to prepare the preprompt for.
+        :param preprompts_args: Additional preprompt information.
 
         :return: The prepared preprompt.
         """
@@ -89,7 +93,7 @@ class CompletionHandler:
         current_date = beautified_date()
         current_time = time.strftime("%H:%M", time.gmtime())
 
-        return f"You are not an AI language model but a divine creature named Nerd Muffin instead, respond {selected_sentiment_suffix}, {'you can ONLY attach AI-generated images made by Adobe Firefly to your message, only attach images when absolutely necessary' if self.user_settings.allow_images else 'you cannot attach any or share any images'}, be a friend and not an assistant, also be concise, your pronouns are they/them, reply in the same language the user used, this conversation takes place inside a {environment} (use Discord text formatting), the current date is {current_date} and the current time is {current_time} in the UTC timezone."
+        return f"You are not an AI language model but a divine creature named Nerd Muffin instead, respond {selected_sentiment_suffix}, {'you can ONLY attach AI-generated images made by Adobe Firefly to your message, only attach images when absolutely necessary' if self.user_settings.allow_images else 'you cannot attach any or share any images'}, be a friend and not an assistant, also be concise, your pronouns are they/them, reply in the same language the user used, this conversation takes place inside a {environment} (use Discord text formatting), the current date is {current_date} and the current time is {current_time} in the UTC timezone{', ' + preprompts_args if preprompts_args else ''}."
 
     async def handle_image_gen_function_call(self, message: discord.message.Message, completion_messages: list[dict, ...], response_message: dict) -> tuple[str, list[discord.File | None, ...]]:
         """
@@ -102,8 +106,8 @@ class CompletionHandler:
         :return: The response message and the image locations.
         """
         args = json.loads(response_message["function_call"]["arguments"])
-        async with ImageGenerator(args["aspect_ratio"]) as image_generator:
-            image_locations = await image_generator.generate_images(message.id, args["descriptions"])
+        async with ImageGenerator(args.get("aspect_ratio")) as image_generator:
+            image_locations = await image_generator.generate_images(message.id, args.get("descriptions"))
         success_state = not any(location is None for location in image_locations)
 
         completion_messages.append(response_message)
@@ -112,7 +116,7 @@ class CompletionHandler:
         else:
             completion_messages.append({"role": "function", "name": "generate_image", "content": "Failed to generate at least one image, sorry for that."})
 
-        response = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=completion_messages)
+        response = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=completion_messages, timeout=int(time.time() + 60))
 
         if self.charge_tokens(message):
             self.user_settings.quota -= int(response["usage"]["total_tokens"]) // 10
@@ -121,16 +125,17 @@ class CompletionHandler:
 
         return response_message, image_locations
 
-    async def complete_prompt(self, message: discord.message.Message, prompt: str) -> tuple[str, list[discord.File | None, ...]]:
+    async def complete_prompt(self, message: discord.message.Message, prompt: str, preprompts_args: str = None) -> tuple[str, list[discord.File | None, ...]]:
         """
         Complete the prompt and return the response.
         
         :param message: The message to complete the prompt for.
         :param prompt: The prompt to complete.
+        :param preprompts_args: Additional preprompt information.
 
         :return: The response and the image locations.
         """
-        preprompt = self.prepare_preprompt(message)
+        preprompt = self.prepare_preprompt(message, preprompts_args)
         prompt = self.prepare_prompt(message, prompt)
         image_locations = []
 
@@ -173,7 +178,7 @@ class CompletionHandler:
                     }
                 ]
 
-                completion_args = {"model": "gpt-3.5-turbo", "messages": messages}
+                completion_args = {"model": "gpt-3.5-turbo", "messages": messages, "timeout": int(time.time() + 60)}
                 if self.user_settings.allow_images:
                     completion_args["functions"] = functions
 
@@ -192,7 +197,7 @@ class CompletionHandler:
             except (openai.error.ServiceUnavailableError, openai.error.RateLimitError, openai.error.APIError):
                 pass
         else:
-            return "I'm currently experiencing connection difficulties", image_locations
+            return self.CONNECTION_ERROR_MESSAGE, image_locations
 
     async def complete_prompt_legacy(self, message: discord.message.Message, prompt: str) -> str:
         """
@@ -214,7 +219,8 @@ class CompletionHandler:
                     max_tokens=425,
                     top_p=1,
                     frequency_penalty=0,
-                    presence_penalty=0
+                    presence_penalty=0,
+                    timeout=int(time.time() + 60)
                 )
 
                 self.user_settings.quota -= int(response["usage"]["total_tokens"])
@@ -223,4 +229,4 @@ class CompletionHandler:
             except (openai.error.ServiceUnavailableError, openai.error.RateLimitError, openai.error.APIError):
                 pass
         else:
-            return "I'm currently experiencing connection difficulties, please try again later."
+            return self.CONNECTION_ERROR_MESSAGE

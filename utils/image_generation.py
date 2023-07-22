@@ -58,8 +58,6 @@ class ImageGenerator:
         :param filename: The filename of the image.
 
         :return: The generated image as a Discord file.
-
-        :raises: pyfirefly.exceptions.ImageGenerationDenied, pyfirefly.exceptions.Unauthorized, pyfirefly.exceptions.SessionExpired
         """
         if self.firefly_session is None:
             logging.error(f"Cannot generate image {filename}. No Adobe Firefly session.")

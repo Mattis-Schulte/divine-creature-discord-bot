@@ -11,3 +11,4 @@ SENTIMENTS = {
 }
 DEFAULT_SENTIMENT = "wise"
 DEFAULT_QUOTA = 1500
+GAME_LIST = ("Fortnite", "Minecraft", "Diablo IV", "Metroid Prime Remastered", "Horizon Call of the Mountain", "Star Wars Jedi: Survivor", "Final Fantasy XVI", "Street Fighter 6", "Among Us", "Call of Duty: Warzone", "Valorant", "League of Legends", "Grand Theft Auto V", "Elden Ring", "The Legend of Zelda: Tears of the Kingdom", "Assassin's Creed Valhalla", "Super Mario Odyssey", "Animal Crossing: New Horizons", "Overwatch", "Dark Souls III", "Red Dead Redemption 2", "Rocket League", "Ghost of Tsushima", "Genshin Impact")

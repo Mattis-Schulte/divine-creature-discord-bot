@@ -1,7 +1,8 @@
 import os
 import asyncio
 import discord
-from utils.constants import PRIVILEGED_GUILDS, SENTIMENTS, DEFAULT_SENTIMENT, DEFAULT_QUOTA
+import random
+from utils.constants import PRIVILEGED_GUILDS, SENTIMENTS, DEFAULT_SENTIMENT, DEFAULT_QUOTA, GAME_LIST
 from utils.database_utils import UserSettingsHandler
 from utils.response_handler import ResponseHandler
 from utils.prompt_completion import CompletionHandler
@@ -16,6 +17,14 @@ class DiscordBot:
         self.intents = discord.Intents.default()
         self.intents.message_content = True
         self.bot = discord.Bot(intents=self.intents)
+    
+    async def set_presence(self):
+        await self.bot.wait_until_ready()
+
+        while True:
+            self.presence = random.choices([random.choice(GAME_LIST), None], weights=[0.4, 0.6])[0]
+            await self.bot.change_presence(activity=discord.Game(name=self.presence) if self.presence else None)
+            await asyncio.sleep(random.randint(60 * 30, 60 * 60 * 3))
 
     async def run_bot(self):
 
@@ -87,7 +96,7 @@ class DiscordBot:
                             user_settings = await UserSettingsHandler(message.author.id).get_user_settings()
                             if user_settings.quota > 0 or message.guild is not None and message.guild.id in PRIVILEGED_GUILDS and not user_settings.use_legacy:
                                 if not user_settings.use_legacy:
-                                    completion, image_locations = await CompletionHandler(user_settings).complete_prompt(message, prompt)
+                                    completion, image_locations = await CompletionHandler(user_settings).complete_prompt(message, prompt, f"you are currently playing {self.presence}" if self.presence else f"you love to play video games but are currently not playing anything")
                                     await ResponseHandler(message).send_response(completion, image_locations)
                                 else:
                                     completion = await CompletionHandler(user_settings).complete_prompt_legacy(message, prompt)
@@ -105,4 +114,5 @@ if __name__ == "__main__":
     bot = DiscordBot(os.getenv("DISCORD_TOKEN"))
     loop = asyncio.get_event_loop()
     loop.create_task(bot.run_bot())
+    loop.create_task(bot.set_presence())
     loop.run_forever()

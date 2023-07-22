@@ -4,7 +4,7 @@ import hashlib
 import time
 from dotenv import load_dotenv
 from redis.asyncio import Redis as aioredis
-from typing import NamedTuple
+from typing import NamedTuple, Self
 from utils.constants import DEFAULT_SENTIMENT, DEFAULT_QUOTA
 from utils.miscellaneous import calc_refresh_time
 
@@ -21,6 +21,7 @@ class RedisConnection:
     """
     def __init__(self, db: int = 0):
         self.db = db
+        self.conn = None
 
     async def __aenter__(self):
         self.conn = await aioredis(host="0.0.0.0", port=8080, db=self.db, password=REDIS_PWD, decode_responses=True)
@@ -44,7 +45,6 @@ class UserSettingsHandler:
 
     :param user_id: The user's ID.
     """
-
     def __init__(self, user_id: int):
         self.user_id = user_id
         self.user_hash = self.hash_user_id(user_id)
@@ -61,7 +61,7 @@ class UserSettingsHandler:
         """
         return hashlib.blake2b((SALTING_VALUE + str(user_id)).encode(), digest_size=16).hexdigest()
 
-    async def get_user_settings(self) -> UserSettings:
+    async def get_user_settings(self) -> Self:
         """
         Get the user settings from Redis.
         
@@ -87,7 +87,7 @@ class UserSettingsHandler:
     @staticmethod
     def default_user_settings() -> UserSettings:
         """
-        Return the default user settings as a UserSettings named tuple.
+        Return the default user settings as a UserSettings object.
         
         :return: The default user settings.
         """
@@ -102,7 +102,7 @@ class UserSettingsHandler:
     @staticmethod
     def parse_user_settings(settings: dict) -> UserSettings:
         """
-        Parse user settings from Redis hash to a UserSettings named tuple.
+        Parse user settings from Redis hash to a UserSettings object.
         
         :param settings: The user settings from Redis.
         
@@ -118,7 +118,7 @@ class UserSettingsHandler:
         """
         Save user settings to Redis.
         
-        :param settings: The user settings to save, either as a UserSettings named tuple or a dict.
+        :param settings: The user settings to save, either as a UserSettings object or a dict.
         """
         if isinstance(settings, UserSettings):
             settings = settings._asdict()
@@ -130,20 +130,25 @@ class UserSettingsHandler:
 
     def __getattr__(self, item: str) -> str | int:
         """
-        Get an attribute from the UserSettings named tuple or the object itself.
+        Get an attribute from the UserSettings object or the parent class.
         
         :param item: The attribute to get.
 
         :return: The attribute.
+
+        :raises AttributeError: If the user settings have not been loaded.
         """
         if item in UserSettings._fields:
+            if self.settings is None:
+                raise AttributeError("User settings not loaded.")
+            
             return getattr(self.settings, item)
         else:
             return super().__getattribute__(item)
 
     def __setattr__(self, name: str, value: str | int):
         """
-        Set an attribute in the UserSettings named tuple and call set_user_settings_async() or set the attribute in the object itself.
+        Set an attribute in the UserSettings object or the parent class.
         
         :param name: The attribute to set.
         :param value: The value to set the attribute to.
